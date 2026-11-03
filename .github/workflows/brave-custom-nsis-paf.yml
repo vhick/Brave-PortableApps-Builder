@@ -1,0 +1,119 @@
+name: Brave PAF-style Installer (community NSIS - reuse verified r7 ZIP)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: 'Existing validated Brave r7 release tag (no browser rebuild)'
+        required: true
+        default: 'portable-v1.98.63-brave-r7'
+        type: string
+      publish:
+        description: 'Publish independent NSIS-built PAF-style installer to a NEW release tag'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brave-custom-nsis-${{ inputs.source_tag }}
+  cancel-in-progress: false
+
+jobs:
+  community-paf:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify r7 source release and required assets (cheap preflight)
+        id: source
+        env:
+          SOURCE_TAG: ${{ inputs.source_tag }}
+        run: ./scripts/nsis-paf/preflight.ps1 -SourceTag $env:SOURCE_TAG
+      - name: Skip existing independent installer release without overwrites
+        id: existing
+        env:
+          RELEASE_TAG: ${{ steps.source.outputs.release_tag }}
+        run: ./scripts/nsis-paf/check-release.ps1 -Tag $env:RELEASE_TAG
+      - name: Ensure NSIS compiler (install pinned 3.12.0 if absent)
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 8
+        run: |
+          . ./scripts/nsis-paf/common.ps1
+          $present = try { Get-Makensis } catch { $null }
+          if (-not $present) {
+            choco install nsis --version=3.12.0 --yes --no-progress --limit-output
+            if($LASTEXITCODE -ne 0) { throw 'Pinned NSIS 3.12.0 installation failed' }
+          }
+          . ./scripts/nsis-paf/common.ps1
+          $nsis = Get-Makensis
+          Write-Host "NSIS compiler: $nsis"
+          & $nsis /VERSION
+          if($LASTEXITCODE -ne 0) { throw 'NSIS compiler did not report its version' }
+      - name: Synthetic Windows first install, upgrade, Data protection and locked-file regression
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 6
+        run: ./scripts/nsis-paf/test-installer.ps1
+      - name: Retrieve and SHA256-verify published Brave r7 ZIP
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 15
+        env:
+          SOURCE_TAG: ${{ inputs.source_tag }}
+        run: ./scripts/nsis-paf/prepare.ps1 -SourceTag $env:SOURCE_TAG
+      - name: Compile independent PAF-style installer with headless NSIS
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 18
+        env:
+          SOURCE_VERSION: ${{ steps.source.outputs.version }}
+        run: ./scripts/nsis-paf/build.ps1 -Version $env:SOURCE_VERSION
+      - name: Validate PE, 7-Zip integrity and embedded browser/launcher hashes
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 8
+        env:
+          SOURCE_VERSION: ${{ steps.source.outputs.version }}
+        run: ./scripts/nsis-paf/validate.ps1 -Version $env:SOURCE_VERSION
+      - name: Silent installation test of actual compiled Brave package into disposable CI folder
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 5
+        env:
+          SOURCE_VERSION: ${{ steps.source.outputs.version }}
+        run: ./scripts/nsis-paf/test-real-install.ps1 -Version $env:SOURCE_VERSION
+      - name: Preview publisher release (no write)
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        uses: vhick/portable-release-publisher@v1.1.1
+        with:
+          files: dist/*custom-nsis-r1_Win64.paf.exe
+          tag: ${{ steps.source.outputs.release_tag }}
+          release-title: Brave Portable ${{ steps.source.outputs.version }} (independent NSIS PAF-style installer)
+          tag-prefix: portable-
+          keep-releases: '3'
+          prune: 'false'
+          dry-run: 'true'
+      - name: Publish validated independent NSIS PAF-style installer
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        uses: vhick/portable-release-publisher@v1.1.1
+        with:
+          files: dist/*custom-nsis-r1_Win64.paf.exe
+          tag: ${{ steps.source.outputs.release_tag }}
+          release-title: Brave Portable ${{ steps.source.outputs.version }} (independent NSIS PAF-style installer)
+          tag-prefix: portable-
+          keep-releases: '3'
+          prune: 'false'
+          dry-run: 'false'
+      - name: Confirm PAF and SHA256SUMS present in published release
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        env:
+          RELEASE_TAG: ${{ steps.source.outputs.release_tag }}
+        run: |
+          $assets = @(gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name')
+          if($LASTEXITCODE -ne 0) { throw 'Unable to inspect published installer release' }
+          if(@($assets | Where-Object { $_ -like '*custom-nsis-r1_Win64.paf.exe' }).Count -ne 1) { throw 'Expected one independent PAF installer in release' }
+          if(@($assets | Where-Object { $_ -eq 'SHA256SUMS.txt' }).Count -ne 1) { throw 'Published installer is missing SHA256SUMS.txt' }
+          Write-Host "Validated new independent PAF release: $env:RELEASE_TAG"
