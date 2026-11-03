@@ -13,20 +13,17 @@ function Test-BraveStableRelease {
     return $true
 }
 
+# The uninstalled official Windows x64 distribution is the primary and ONLY
+# supported input. Never select update installers, 32-bit, ARM64, symbols,
+# Brave Origin, or similarly named checksum files.
 function Select-BraveWindowsX64Asset {
-    param([Parameter(Mandatory)] [object[]]$Assets)
-    # Exactly match the upstream's x64 offline installers; avoid the tiny web
-    # bootstrapper, 32-bit, ARM64, and the silent installer variants.
-    foreach ($pattern in @(
-        '^BraveBrowserStandaloneSetup\.exe$',
-        '^BraveBrowserStandaloneSetup_\d+_\d+_\d+_\d+\.exe$',
-        '^BraveBrowserStandaloneSetup64(?:_\d+_\d+_\d+_\d+)?\.exe$',
-        '^brave_installer-x64\.exe$'
-    )) {
-        $matchingAssets = @($Assets | Where-Object { $_.name -match $pattern })
-        if ($matchingAssets.Count -eq 1) { return $matchingAssets[0] }
-        if ($matchingAssets.Count -gt 1) { throw "Ambiguous x64 offline Brave assets matching $pattern" }
-    }
+    param([Parameter(Mandatory)][object[]]$Assets,
+          [Parameter(Mandatory)][string]$Version)
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid stable version: $Version" }
+    $expected = "brave-v$Version-win32-x64.zip"
+    $candidates = @($Assets | Where-Object { $_.name -ceq $expected })
+    if ($candidates.Count -gt 1) { throw "Ambiguous official browser ZIP assets named $expected" }
+    if ($candidates.Count -eq 1) { return $candidates[0] }
     return $null
 }
 

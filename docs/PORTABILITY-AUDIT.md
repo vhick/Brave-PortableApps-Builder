@@ -1,9 +1,9 @@
-# Brave Windows portable audit — independent builder r4 (2026-11-03)
+# Brave Windows portable audit — independent builder r5 (2026-11-03)
 
 ## Evidence, application and build approach
 
 - Brave Windows is a Chromium-based, multiprocess browser with Brave-specific modifications. `brave/brave-browser` carries official releases, issues and build documentation; `brave/brave-core` holds core build logic and patches. Full compilation uses Chromium depot_tools/gclient, GN/Ninja and many dependencies. Upstream describes downloading over 60 GB for source sync. A GitHub-hosted Windows source build is therefore NOT the supported mode of this budget-conscious kit.
-- Instead, the kit resolves an official stable release tag and commit; verifies the official release asset **size and GitHub SHA256 digest** before extracting its `chrome.7z` payload. It never installs Brave on the runner and never compiles modified Brave/Chromium code. If upstream asset names/layout/digest change, stop safely rather than substituting random downloads.
+- Instead, the kit resolves an official stable release tag and commit; verifies the official uninstalled `brave-v<version>-win32-x64.zip` release asset **size and GitHub SHA256 digest**, tests the ZIP archive, and extracts its complete executable directory. It never installs Brave on the runner and never compiles modified Brave/Chromium code. If upstream asset names/layout/digest change, stop safely rather than substituting random downloads.
 - Only the independent Go Windows launcher is compiled. A pinned MIT resource compiler embeds the official icon extracted from `brave.exe`.
 - Windows 10+ per official current Brave system requirements, x64 only. The portable launcher does not request elevation.
 
@@ -60,7 +60,7 @@ These match the Portapps Brave reference arguments, plus first-run suppression.
 ### Non-guarantees
 
 - Cross-Windows-account encrypted Brave secrets, app-bound keys, existing installed services, and Brave Rewards/Wallet portability are NOT guaranteed. Back up wallets/keys using the application's supported procedures before moving disks.
-- No guarantee that future Brave releases will retain extractable `chrome.7z` or accept the listed flags.
+- No guarantee that future Brave releases will publish an uninstalled x64 ZIP with the same layout or accept the listed flags.
 - No permanent host footprint elimination. OS-level caches, Jump Lists, prefetch, network caches, Windows logs, shortcuts created by users, and system features can leave traces.
 - The monitor does not make a hard claim that unrelated writes to a brand-new observed directory are impossible; avoid launching an installed Brave concurrently during trace verification.
 
@@ -68,7 +68,7 @@ These match the Portapps Brave reference arguments, plus first-run suppression.
 
 - Unit tests for two files, nested nonempty, empty and deeply nested empty directories, host content preservation, and manifest traversal rejection: actually run successfully in a Linux container at kit authoring time.
 - Go launcher cross-compilation to a real 64-bit Windows PE GUI executable: actually run successfully at kit authoring time.
-- GitHub Actions Windows startup, actual stable asset retrieval, official installer download/build, full installer validation and publisher upload: NOT RUN in the author's environment and must be demonstrated in a real GitHub Actions log.
+- GitHub Actions Windows startup, actual stable browser ZIP retrieval, official installer download/build, full installer validation and publisher upload: NOT RUN in the author's environment and must be demonstrated in a real GitHub Actions log.
 - PortableApps Menu launch and PAF upgrade over a user's Data: requires separate manual Windows acceptance tests.
 
 ## Sources
@@ -84,3 +84,6 @@ These match the Portapps Brave reference arguments, plus first-run suppression.
 - https://sourceforge.net/projects/portableapps/files/PortableApps.com%20Installer/
 - https://github.com/vhick/portable-release-publisher/blob/v1.1.1/action.yml
 - https://brave.com/terms-of-use/
+
+## r5 direct ZIP correction (2026-11-03)
+The uploaded r4 log establishes that the EXE was downloaded, but the updater installer did not contain `chrome.7z` as the builder required. The direct x64 ZIP removes that incorrect installer assumption. Exact-release filename matching rejects 32-bit, ARM, symbols and Brave Origin archives; GitHub-published SHA-256 and 7z archive testing are mandatory. The binary `brave.exe` must be unique and PE-valid. The full sibling resource tree and empty directories are copied intact to `App\Brave`. The browser ZIP still contains official Brave binaries, NOT a compile-from-source output.

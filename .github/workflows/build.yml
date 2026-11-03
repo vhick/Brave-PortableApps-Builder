@@ -46,8 +46,10 @@ jobs:
           cache: false
       - name: Unit tests (including files, nested and empty directory protection)
         run: go test -count=1 ./internal/traceguard
-      - name: Regression-test Brave stable release and x64 asset selection
+      - name: Regression-test Brave stable release and exact Windows x64 ZIP selection
         run: ./scripts/test-resolver.ps1
+      - name: Regression-test Brave ZIP layout and resource directory preservation
+        run: ./scripts/test-extraction.ps1
       - name: Resolve official stable release and its commit (no compilation yet)
         id: upstream
         env:
@@ -62,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.upstream.outputs.tag }}
         run: ./scripts/check-release.ps1 -Tag $env:RELEASE_TAG
-      - name: Extract the SHA256-verified Brave stable release (no installation)
+      - name: Download and validate official uninstalled Brave x64 ZIP (no installer)
         if: steps.existing.outputs.skip != 'true'
         timeout-minutes: 20
         run: ./scripts/download-extract.ps1
@@ -108,7 +110,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r4)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r5)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -119,7 +121,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r4)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r5)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'

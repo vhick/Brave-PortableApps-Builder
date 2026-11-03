@@ -52,12 +52,12 @@ Require ($finished) "Release asset listing exceeded $maxPages pages; refusing an
 Require ($assets.Count -gt 0) "No release assets returned for $($release.tag_name)"
 # The requested Windows binary can be at page two or later. Do not choose
 # another architecture or download a web installer as a fallback.
-$asset=Select-BraveWindowsX64Asset -Assets $assets
+$asset=Select-BraveWindowsX64Asset -Assets $assets -Version ($release.tag_name.TrimStart('v'))
 if ($null -eq $asset) {
-    $names=@($assets | Where-Object { $_.name -match '(?i)BraveBrowser.*(?:Setup|win32-x64)' } | ForEach-Object { $_.name })
-    throw "Official stable $($release.tag_name) has no supported Windows x64 standalone installer across $($assets.Count) discovered assets. Candidates: $($names -join ', ')"
+    $names=@($assets | Where-Object { $_.name -match '(?i)win32-x64|BraveBrowser.*Setup' } | ForEach-Object { $_.name })
+    throw "Official stable $($release.tag_name) has no exact stable Windows x64 browser ZIP across $($assets.Count) discovered assets. Candidates: $($names -join ', ')"
 }
-Require ($asset.size -gt 5000000) "Installer asset unexpectedly small: $($asset.name)"
+Require ($asset.size -gt 5000000) "Official browser ZIP unexpectedly small: $($asset.name)"
 Require ($asset.digest -match '^sha256:[a-fA-F0-9]{64}$') "GitHub did not publish a SHA256 digest for $($asset.name); refusing unverified binary"
 Require ($asset.browser_download_url -match '^https://github\.com/brave/brave-browser/releases/download/') 'Untrusted Brave download URL'
 
@@ -73,12 +73,12 @@ $out=[ordered]@{
     AssetDigest=$asset.digest.Substring(7).ToLowerInvariant()
     AssetSize=$asset.size
     AssetCount=$assets.Count
-    BuilderRevision='r4'
+    BuilderRevision='r5'
     ResolvedAt=(Get-Date).ToUniversalTime().ToString('o')
 }
 $out | ConvertTo-Json | Set-Content -Encoding utf8 work/upstream.json
-Write-Host "Resolved stable $($release.tag_name), commit $commit; verified asset metadata: $($asset.name) ($($asset.size) bytes)"
+Write-Host "Resolved stable $($release.tag_name), commit $commit; verified ZIP asset metadata: $($asset.name) ($($asset.size) bytes)"
 if ($env:GITHUB_OUTPUT) {
     "version=$($out.Version)" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-    "tag=portable-v$($out.Version)-brave-r4" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+    "tag=portable-v$($out.Version)-brave-r5" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
 }
