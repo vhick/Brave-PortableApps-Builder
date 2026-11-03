@@ -1,0 +1,140 @@
+name: Brave PortableApps (official Brave stable + native EXE launcher)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable Brave version, blank = highest stable release'
+        required: false
+        default: ''
+        type: string
+      attempt_paf:
+        description: 'Attempt official PortableApps.com Installer PAF (verified tool)'
+        required: true
+        type: boolean
+        default: true
+      require_paf:
+        description: 'Fail build if official-tool PAF cannot be verified'
+        required: true
+        type: boolean
+        default: false
+      publish:
+        description: 'Publish finished ZIP and (if successful) PAF in this repository'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brave-portable-builder
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: Unit tests (including files, nested and empty directory protection)
+        run: go test -count=1 ./internal/traceguard
+      - name: Resolve official stable release and its commit (no compilation yet)
+        id: upstream
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: ./scripts/resolve.ps1 -Version $env:REQUESTED_VERSION
+      - name: Avoid rebuilding already-published versions
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag='${{ steps.upstream.outputs.tag }}'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE -eq 0){
+            Write-Host "Release $tag already exists. No rebuild or overwrite."
+            'skip=true' | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          } else {
+            'skip=false' | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          }
+      - name: Extract the SHA256-verified Brave stable release (no installation)
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 20
+        run: ./scripts/download-extract.ps1
+      - name: Create PortableApps directory and compile real Windows EXE
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 10
+        run: ./scripts/stage.ps1
+      - name: Launch the real browser with isolated disposable profile (headless smoke)
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 4
+        run: ./scripts/smoke.ps1
+      - name: Build and integrity-test ready-to-extract ZIP
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 12
+        run: ./scripts/package.ps1
+      - name: Generate authentic PortableApps.com Installer PAF (optional)
+        if: steps.existing.outputs.skip != 'true' && inputs.attempt_paf
+        timeout-minutes: 10
+        run: |
+          if ('${{ inputs.require_paf }}' -eq 'true') {
+            ./scripts/paf.ps1 -Required
+          } else {
+            ./scripts/paf.ps1
+          }
+      - name: Validate packages and choose exact publication globs
+        if: steps.existing.outputs.skip != 'true'
+        id: verify
+        run: |
+          $pafs=@(Get-ChildItem dist -File -Filter '*.paf.exe')
+          if($pafs.Count -gt 0){
+            ./scripts/validate.ps1 -CheckPAF
+            'files=dist/*.zip;dist/*.paf.exe'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+            'has_paf=true'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          }else{
+            if ('${{ inputs.require_paf }}' -eq 'true') {throw 'Official-tool PAF required but not generated'}
+            ./scripts/validate.ps1
+            'files=dist/*.zip'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+            'has_paf=false'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          }
+      - name: Preview official publisher release (no writes)
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        uses: vhick/portable-release-publisher@v1.1.1
+        with:
+          files: ${{ steps.verify.outputs.files }}
+          tag: ${{ steps.upstream.outputs.tag }}
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r1)
+          tag-prefix: portable-
+          keep-releases: '3'
+          prune: 'false'
+          dry-run: 'true'
+      - name: Publish validated ZIP and optional official PAF directly to Releases
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        uses: vhick/portable-release-publisher@v1.1.1
+        with:
+          files: ${{ steps.verify.outputs.files }}
+          tag: ${{ steps.upstream.outputs.tag }}
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r1)
+          tag-prefix: portable-
+          keep-releases: '3'
+          prune: 'false'
+          dry-run: 'false'
+      - name: Check published assets without secondary publishing
+        if: steps.existing.outputs.skip != 'true' && inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag='${{ steps.upstream.outputs.tag }}'
+          $assets=@(gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name')
+          if($LASTEXITCODE -ne 0){throw 'Unable to read published release'}
+          if(@($assets|Where-Object {$_ -match '\.zip$'}).Count -ne 1){throw 'Published release missing ZIP'}
+          if('${{ steps.verify.outputs.has_paf }}' -eq 'true' -and @($assets|Where-Object {$_ -match '\.paf\.exe$'}).Count -ne 1){throw 'Published release missing PAF'}
+          Write-Host "Confirmed release assets: $($assets -join ', ')"

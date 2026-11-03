@@ -1,0 +1,8 @@
+/dist/
+/work/
+*.exe
+*.paf.exe
+*.zip
+*.pending
+*.previous
+*.syso

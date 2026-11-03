@@ -1,0 +1,30 @@
+Brave Portable (Independent Build) — source and license notices
+
+Upstream application: Brave Software, Inc.
+Source: https://github.com/brave/brave-browser
+License: Mozilla Public License 2.0 for Brave open-source code; other
+third-party components and product artwork may carry separate terms.
+All browser binaries are obtained from a Brave official GitHub stable release.
+Brave and its logo are trademarks of Brave Software, Inc. This independent
+packaging is NOT endorsed, certified, or distributed by Brave Software.
+Brave's terms do not grant independent trademark rights; assess distribution
+and branding authorization before making public executable releases.
+
+PortableApps.com Format and Installer belong to Rare Ideas, LLC. The official
+unmodified PortableApps.com Installer is downloaded only in GitHub Actions
+from the PortableApps SourceForge project and verified against the published
+SHA-256 digest. This project is not PortableApps.com certified.
+
+Launcher and TraceGuard code: authored for this independent builder;
+permissive MIT-0 style grant to use/modify/distribute this builder code,
+subject to upstream/trademark/other software licenses.
+A separate MIT-licensed resource compiler (github.com/akavel/rsrc
+v0.10.2) is used at BUILD TIME only to embed Brave's actual icon.
+
+Release publisher: vhick/portable-release-publisher@v1.1.1 —
+https://github.com/vhick/portable-release-publisher
+Technique references:
+https://github.com/portapps/brave-portable
+https://github.com/vhick/FreeCrawl-PortableApps-Builder
+
+No downstream product licenses are granted by this NOTICE.
