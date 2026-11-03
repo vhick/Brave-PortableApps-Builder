@@ -8,7 +8,7 @@ Assert-Staging $stage
 $manifest=Get-Content -LiteralPath (Join-Path $work 'source-manifest.json') -Raw|ConvertFrom-Json
 Assert ($manifest.version -eq $Version) 'Source version and compilation request differ'
 New-Item -ItemType Directory -Force (Join-Path $root 'dist') | Out-Null
-$out=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r1_Win64.paf.exe"
+$out=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r2_Win64.paf.exe"
 Assert (-not (Test-Path -LiteralPath $out)) 'Installer already exists; do not overwrite outputs'
 $nsis=Get-Makensis
 Write-Host "NSIS compiler: $nsis"

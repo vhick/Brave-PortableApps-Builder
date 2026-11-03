@@ -40,10 +40,10 @@ Assert-Staging $stage
 $provenance=Get-Content -LiteralPath (Join-Path $stage 'Other/Source/upstream.json') -Raw | ConvertFrom-Json
 Assert ([string]$provenance.Version -eq $version) 'Upstream version in packaged metadata differs from release tag'
 Assert ([string]$provenance.BuilderRevision -eq 'r7') 'This workflow only consumes the verified Brave r7 application baseline'
-$state=[ordered]@{ source_tag=$SourceTag; source_repository=$Repository; version=$version; source_zip=$zipName; source_zip_sha256=$actual; builder_revision='r7'; packaging_engine='independent-NSIS'; packaging_revision='nsis-r1' }
+$state=[ordered]@{ source_tag=$SourceTag; source_repository=$Repository; version=$version; source_zip=$zipName; source_zip_sha256=$actual; builder_revision='r7'; packaging_engine='independent-NSIS'; packaging_revision='nsis-r2' }
 $state | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'source-manifest.json') -Encoding utf8
 if($env:GITHUB_OUTPUT) {
   "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-  "release_tag=portable-v${version}-brave-r7-custom-nsis-paf-r1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+  "release_tag=portable-v${version}-brave-r7-custom-nsis-paf-r2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 }
 Write-Host 'Source package verified, staged, and ready for independent NSIS compilation'

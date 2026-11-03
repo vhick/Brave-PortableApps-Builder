@@ -8,7 +8,7 @@ $root=(Resolve-Path .).Path
 $work=Join-Path $root 'work/nsis-paf'
 $source=Join-Path $work 'extracted/BravePortable'
 $target=Join-Path $work 'real-install/BravePortable'
-$installer=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r1_Win64.paf.exe"
+$installer=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r2_Win64.paf.exe"
 Assert-Staging $source
 Assert-PE $installer
 Assert (-not (Test-Path -LiteralPath $target)) 'Disposable test installation target already exists; refusing to reuse it'

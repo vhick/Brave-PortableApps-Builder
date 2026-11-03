@@ -14,7 +14,7 @@ Assert ($record.tagName -ceq $SourceTag -and -not $record.isDraft -and -not $rec
 $assets=@($record.assets | ForEach-Object { $_.name })
 Assert ($assets -contains $asset) "Source release missing validated ZIP $asset"
 Assert ($assets -contains 'SHA256SUMS.txt') 'Source release missing publisher checksum asset'
-$tag="portable-v${version}-brave-r7-custom-nsis-paf-r1"
+$tag="portable-v${version}-brave-r7-custom-nsis-paf-r2"
 "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 "release_tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 Write-Host "Verified source release has required assets; source=$SourceTag, target=$tag"

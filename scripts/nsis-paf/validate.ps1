@@ -4,7 +4,7 @@ Assert ($Version -match '^\d+\.\d+\.\d+$') 'Invalid version'
 $root=(Resolve-Path .).Path
 $stage=Join-Path $root 'work/nsis-paf/extracted/BravePortable'
 Assert-Staging $stage
-$out=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r1_Win64.paf.exe"
+$out=Join-Path $root "dist/BravePortable_${Version}_brave-r7_custom-nsis-r2_Win64.paf.exe"
 Assert-PE $out
 $seven=Get-7Zip
 & $seven t -y $out | Out-Host
