@@ -2,7 +2,7 @@ param([Parameter(Mandatory)][string]$Tag)
 . "$PSScriptRoot/common.ps1"
 . "$PSScriptRoot/release-check-utils.ps1"
 
-Require ($Tag -match '^portable-v[0-9]+\.[0-9]+\.[0-9]+-brave-r6$') "Unexpected release tag: $Tag"
+Require ($Tag -match '^portable-v[0-9]+\.[0-9]+\.[0-9]+-brave-r7$') "Unexpected release tag: $Tag"
 Require (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) 'GITHUB_TOKEN is required to check private/public builder releases.'
 Require ($env:GITHUB_REPOSITORY -match '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$') 'Invalid GITHUB_REPOSITORY in runner environment.'
 Require (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) 'GITHUB_OUTPUT is required to communicate the skip decision.'

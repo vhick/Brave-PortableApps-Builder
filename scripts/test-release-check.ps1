@@ -6,7 +6,7 @@ function MustThrow([scriptblock]$test,[string]$message) {
     try {& $test | Out-Null} catch {$caught=$true}
     if(-not $caught){throw "Release check regression failed: $message"}
 }
-$tag='portable-v1.98.63-brave-r6'
+$tag='portable-v1.98.63-brave-r7'
 $release=[pscustomobject]@{tag_name=$tag;id=42}
 Check ((Test-PortableReleaseStatus -StatusCode 200 -Response $release -ExpectedTag $tag) -eq $true) '200 for the matching tag must skip'
 Check ((Test-PortableReleaseStatus -StatusCode 404 -Response $null -ExpectedTag $tag) -eq $false) '404 must allow build'

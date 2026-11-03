@@ -1,4 +1,4 @@
-# Brave Windows portable audit — independent builder r6 (2026-11-03)
+# Brave Windows portable audit — independent builder r7 (2026-11-03)
 
 ## Evidence, application and build approach
 
@@ -91,3 +91,7 @@ The uploaded r4 log establishes that the EXE was downloaded, but the updater ins
 ## r6 bounded unattended smoke correction — 2026-11-03
 
 The r5 GitHub Actions runner successfully downloaded and extracted the exact official Brave ZIP, and compiled the native launcher. Its `Start-Process -Wait` smoke step timed out after four minutes. PowerShell documents that `-Wait` waits for a process *tree*, not only the launched PID. Also, the launcher displayed an interactive MessageBoxW on error. The log contains no browser output, so one cannot isolate which condition caused the hang. r6 uses a bounded wait on only the directly launched process; smoke-mode errors go to an on-disk log without dialogs; output and failure details are displayed in Actions; and the CI test only terminates its own known launcher PID on timeout.
+
+## r7 CI runtime test changes
+
+The r6 test timed out after 75 seconds waiting for headless `--dump-dom` to finish; browser stdout was empty. r7 validates an actual live Chromium DevTools endpoint on a disposable portable profile, requests normal `Browser.close`, then verifies launcher/TraceGuard cleanup and profile state. It does not guarantee the browser will initialize on an unattended GitHub runner; if readiness fails, the workflow exits with diagnostics rather than claiming a runtime pass.

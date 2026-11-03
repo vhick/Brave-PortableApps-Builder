@@ -1,17 +1,17 @@
-# Brave PortableApps Builder r6 — Bounded Windows Smoke Test
+# Brave PortableApps Builder r7 — DevTools Runtime Smoke Fix
 
 This revision replaces the fragile Brave updater-installer extraction with Brave's official **uninstalled Windows x64 ZIP**. Release selection requires the exact file `brave-v<stable-version>-win32-x64.zip` and validates GitHub's published SHA-256 digest, size, release tag and commit. No browser installer is run. The native launcher, PortableApps Menu structure, Data protection, TraceGuard and independent release publisher are preserved.
 
 Independent, on-demand GitHub Actions builder for **official stable Brave Windows x64** binaries. Creates a ready-to-extract `BravePortable` ZIP and tries to build an authentic PortableApps.com Installer `.paf.exe`, using verified official tooling. Compiles a real `BravePortable.exe` GUI launcher with Brave's official icon, an isolated `Data\profile`, and conservative TraceGuard data recovery.
 
-> **Status:** The uploaded r4 GitHub Actions run passed release detection and the release-existence check, but failed because its installer extraction assumed a `chrome.7z` payload that was not present. r5 verified Brave ZIP extraction and launcher compilation on GitHub Actions, but its headless smoke step hit the four-minute workflow timeout without useful diagnostics. r6 makes that test bounded and noninteractive. Full r6 Windows runtime, official PAF generation and publication remain unverified.
+> **Status:** r6 GitHub Actions verified the official Brave ZIP download, integrity, staging and compiled native launcher. Brave then failed to finish the `--dump-dom about:blank` headless smoke within 75 seconds, leaving an empty browser-output file. r7 replaces this specific CI test with bounded loopback Chrome DevTools readiness and the documented `Browser.close` command. Real r7 Windows startup, official PAF generation and publishing remain unverified.
 
 ## What it generates
 
 | Requested output | Workflow behavior |
 |---|---|
-| `BravePortable_VERSION_brave-r6_Win64.zip` | Default. Contains `BravePortable/BravePortable.exe` + original Brave binaries + required PortableApps menu files. |
-| `BravePortable_VERSION_brave-r6_Win64.paf.exe` | Attempted by default using SHA-verified **unmodified official PortableApps.com Installer 3.9.22**. Only published if PE/archive/payload validation passes. |
+| `BravePortable_VERSION_brave-r7_Win64.zip` | Default. Contains `BravePortable/BravePortable.exe` + original Brave binaries + required PortableApps menu files. |
+| `BravePortable_VERSION_brave-r7_Win64.paf.exe` | Attempted by default using SHA-verified **unmodified official PortableApps.com Installer 3.9.22**. Only published if PE/archive/payload validation passes. |
 | SHA-256 hashes | Calculated during building. The existing release publisher also performs its own checksumming. |
 | Browser source compilation | **No.** Brave/Chromium source build exceeds the intended GitHub Free workflow budget; the source-tagged original vendor binaries are SHA-256 verified and extracted. Only the portable launcher is compiled. |
 
@@ -26,14 +26,14 @@ The manual GitHub Actions workflow accepts:
 - **require_paf:** `false` default. When `true`, a failed official-tool installer causes the workflow to fail. When `false`, it keeps the valid ZIP.
 - **publish:** `true` default. Runs `vhick/portable-release-publisher@v1.1.1` in preview/dry-run and then publishing mode.
 
-Publisher controls: uses `files`, `tag`, `release-title`, `tag-prefix`, `keep-releases`, `prune` and `dry-run` as declared by verified `action.yml`. Tags are `portable-vX.Y.Z-brave-r6`. If the tag already has a release, the workflow skips expensive steps rather than overwriting assets. It retains the release publisher's default of three recent releases **only if pruning is enabled**, but this builder sets `prune: false`, so NO automatic deletion occurs. Manual releases remain unaffected. Public repositories publish public releases and private repositories publish private releases; visibility is never modified.
+Publisher controls: uses `files`, `tag`, `release-title`, `tag-prefix`, `keep-releases`, `prune` and `dry-run` as declared by verified `action.yml`. Tags are `portable-vX.Y.Z-brave-r7`. If the tag already has a release, the workflow skips expensive steps rather than overwriting assets. It retains the release publisher's default of three recent releases **only if pruning is enabled**, but this builder sets `prune: false`, so NO automatic deletion occurs. Manual releases remain unaffected. Public repositories publish public releases and private repositories publish private releases; visibility is never modified.
 
 ## GitHub Desktop: beginner setup
 
 1. Download the **builder ZIP** attached to the chat response. Extract it somewhere convenient on your Windows PC.
 2. Start **GitHub Desktop**, choose **File → New repository**. For example, enter `Brave-PortableApps-Builder`. Choose your normal GitHub repositories folder. Create the repository. Do not fork the Brave browser repository.
 3. Open the new repository location using **Repository → Show in Explorer**. Copy **the contents inside the builder ZIP** into this folder. At the top level you should see `README.md`, `go.mod`, `cmd`, `internal`, `scripts`, `docs`, `.github`, `.gitignore`. Enable *Show hidden items* in Windows Explorer if `.github` and `.gitignore` are hidden. Keep `.github/workflows/build.yml` inside `.github`.
-4. Return to GitHub Desktop. It should show new/changed source files. Enter summary `Bound Brave headless smoke test - r6`, then click **Commit to main**.
+4. Return to GitHub Desktop. It should show new/changed source files. Enter summary `Use bounded DevTools runtime test - r7`, then click **Commit to main**.
 5. Click **Publish repository**. Pick **Private** by default while verifying the build and evaluating Brave branding/redistribution permissions. Uncheck **Keep this code private** only if you have decided public distribution is appropriate. This setting affects release visibility too.
 6. Open the repository on GitHub in a browser. Navigate to **Settings → Actions → General → Workflow permissions**. Make sure the workflow can obtain **Read and write permissions** when publishing releases. In an organization, organization policy may override this setting.
 7. Select **Actions** and enable workflows if GitHub prompts you. Click **Brave PortableApps (official Brave stable + native EXE launcher)** → **Run workflow**. Leave version blank for the current official latest stable. Keep `attempt_paf=true`, `require_paf=false`. Keep `publish=true` after deciding your repository's visibility is acceptable. Click **Run workflow**.
@@ -73,7 +73,7 @@ The PortableApps.com Installer is SHA-256 verified against its official SourceFo
 | `GitHub did not publish a SHA256 digest` | GitHub release assets are missing verified `digest`; fail closed rather than trusting a guessed checksum |
 | `No exact official stable x64 browser ZIP` | The selected release's asset names changed. Examine official GitHub release metadata. Do not use unversioned current installer |
 | `brave.exe` missing from verified ZIP | Upstream ZIP structure changed or executable was not included. Inspect the verified official ZIP; do not fall back to updater setup |
-| Browser smoke test fails | r6 prints `launcher.log` and the headless browser output into GitHub Actions before failing; check the exact error there. The smoke step waits for the launcher PID, not the entire process tree. |
+| Browser smoke test fails | r7 prints `launcher.log`, browser stderr, portable-profile status, and whether `DevToolsActivePort` appeared. If no DevTools endpoint is created, this is a real startup/readiness failure on that runner; do not claim a successful runtime test. |
 | PAF fails, ZIP succeeds | Check the official tool step and `work/paf-compiler.log`; optional mode allows ZIP-only publication. Verify current PAF tool version and CLI behavior |
 | `Resource compiler` fails | `github.com/akavel/rsrc@v0.10.2` could not be downloaded/built, or official icon extraction failed; do not silently use a placeholder |
 | Publisher fails | Inspect job `contents: write`, release tag conflicts, default `GITHUB_TOKEN` permissions, immutable tags and `v1.1.1` availability |
@@ -110,7 +110,7 @@ docs/NOTICE.txt              provenance/trademark/license notices
 
 ### Maintainer notes
 
-- Revisions must increment the `r6` package/tag revision in all relevant files before rebuilding the same upstream version; existing releases intentionally block destructive overwrites.
+- Revisions must increment the `r7` package/tag revision in all relevant files before rebuilding the same upstream version; existing releases intentionally block destructive overwrites.
 - `actions/checkout@v4`, `actions/setup-go@v5`, `vhick/portable-release-publisher@v1.1.1` are version-tagged dependencies. SHA pinning of upstream actions is recommended once their exact commits have been independently verified.
 - Source digest pinning protects browser assets. SHA256 pinning protects the official PAF tool. The build-time resource generator uses a pinned tagged Go module; its module checksum is verified by Go's module infrastructure.
 - For guaranteed source compilation or absolute unknown-path attribution, a substantially different build environment, Windows instrumentation plan and separate testing project are needed; this release does not make those claims.
@@ -158,3 +158,12 @@ The r5 Actions log confirms 213 official-release assets were enumerated, the exa
 Two code paths could hide the root runtime error: `Start-Process -Wait` waits for all descendants, while the native launcher displayed a modal error dialog even during unattended testing. r6 removes both conditions **for smoke testing only**, preserving normal interactive behavior. A bounded `WaitForExit(165 seconds)` targets only the root launcher PID; smoke-mode errors append to `Data\TraceGuard\launcher.log` instead of opening a dialog. The test prints startup and browser output on every run and stops only its own known launcher on timeout. It refuses to ship a test profile or treat an empty output as passing. A pre-download regression test checks the new process wait helper.
 
 **Validation boundary:** r5 ZIP retrieval, verification, extraction and launcher compilation are directly supported by the uploaded live GitHub Actions log. The cause of the actual headless non-exit is not provable without the launcher logs, which r5 did not print. r6's exact live startup outcome remains unverified until run on Windows. If the browser itself fails on the runner, the new logs will show the specific reason instead of presenting a silent four-minute timeout.
+
+
+## r7 fix — 2026-11-03 (sixth uploaded Actions log)
+
+The r6 Windows run verified Brave v1.98.63 release detection, SHA-256-verified `brave-v1.98.63-win32-x64.zip` download and extraction, PortableApps staging, and native Windows GUI executable compilation. Its launcher started `brave.exe` with a `--headless=new --dump-dom about:blank` test, which failed to finish in 75 seconds. `smoke-output.txt` was empty; launcher.log reported the explicit 75-second deadline. The evidence does **not** establish why Brave failed to finish its headless DOM dump, and it is not evidence of a broken compiled launcher.
+
+r7 tests actual browser readiness more deterministically: on a disposable profile, launch Brave with `--headless --remote-debugging-address=127.0.0.1 --remote-debugging-port=0`. The PowerShell smoke script waits up to 85 seconds for `Data\profile\DevToolsActivePort`, reads the loopback browser metadata at `/json/version`, and uses a .NET WebSocket to call `Browser.close`. It then waits for the native launcher to finish TraceGuard capture; validates that Brave wrote `Local State`; and removes the disposable Data folder before package creation. No remote endpoints or user profiles are contacted. CI-only stderr logging is enabled to diagnose early startup failures; ordinary launched browser sessions keep the user's requested logging flags. Failing any readiness, shutdown, or data check blocks publishing.
+
+**Verification boundary:** r7 Go tests, Windows EXE cross-compilation, workflow parse, source-integrity tests and ZIP integrity can be verified in the current Linux environment. Running Brave, the Windows PowerShell tests, PAF generation, and publisher all still require the next live GitHub Actions run. Never count browser startup as passing until the GitHub runner confirms it.

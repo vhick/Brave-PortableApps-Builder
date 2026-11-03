@@ -1,7 +1,7 @@
 . "$PSScriptRoot/common.ps1"
 $up=Get-Content work/upstream.json -Raw|ConvertFrom-Json
 New-Item -Type Directory -Force dist|Out-Null
-$name="BravePortable_$($up.Version)_brave-r6_Win64.zip"
+$name="BravePortable_$($up.Version)_brave-r7_Win64.zip"
 $zip=Join-Path (Resolve-Path dist) $name
 if(Test-Path $zip){Remove-Item -LiteralPath $zip -Force}
 $seven=SevenZip

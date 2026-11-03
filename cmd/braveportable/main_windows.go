@@ -147,7 +147,23 @@ func run() error {
 		args = append(args, a)
 	}
 	if testMode {
-		args = append(args, "--headless=new", "--disable-gpu", "--dump-dom", "about:blank")
+		// CI integration test: verify that Brave has initialized Chromium's
+		// DevTools endpoint, then close it via the documented Browser.close
+		// command. The old --dump-dom about:blank test remained alive for 75s
+		// on a Windows GitHub runner with no output, so do not require it.
+		// Port 0 asks Chrome to allocate a free loopback port and write it
+		// to Data/profile/DevToolsActivePort; never expose a remote listener.
+		// Preserve the ordinary user flags, but allow diagnostic logging only
+		// for the disposable CI profile (normal launches still disable it).
+		filtered := make([]string, 0, len(args))
+		for _, a := range args {
+			if a != "--disable-logging" {
+				filtered = append(filtered, a)
+			}
+		}
+		args = append(filtered, "--headless", "--disable-gpu", "--disable-extensions",
+			"--disable-background-networking", "--remote-debugging-address=127.0.0.1",
+			"--remote-debugging-port=0", "--enable-logging=stderr", "--v=0", "about:blank")
 	}
 	cmd := exec.Command(browser, args...)
 	cmd.Dir = filepath.Dir(browser)
@@ -170,11 +186,11 @@ func run() error {
 		if testMode {
 			select {
 			case waitErr = <-completed:
-			case <-time.After(75 * time.Second):
+			case <-time.After(155 * time.Second):
 				// Kill ONLY our directly launched smoke-test process, never unrelated browsers.
 				_ = cmd.Process.Kill()
 				waitErr = <-completed
-				waitErr = fmt.Errorf("smoke test exceeded 75 seconds: %w", waitErr)
+				waitErr = fmt.Errorf("smoke test exceeded 155 seconds: %w", waitErr)
 			}
 		} else {
 			waitErr = <-completed

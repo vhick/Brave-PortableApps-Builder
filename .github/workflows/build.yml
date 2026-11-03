@@ -50,7 +50,7 @@ jobs:
         run: ./scripts/test-resolver.ps1
       - name: Regression-test Brave ZIP layout and resource directory preservation
         run: ./scripts/test-extraction.ps1
-      - name: Regression-test bounded noninteractive browser smoke polling
+      - name: Regression-test local DevTools browser-smoke protocol and bounded polling
         run: ./scripts/test-smoke.ps1
       - name: Resolve official stable release and its commit (no compilation yet)
         id: upstream
@@ -74,7 +74,7 @@ jobs:
         if: steps.existing.outputs.skip != 'true'
         timeout-minutes: 10
         run: ./scripts/stage.ps1
-      - name: Launch the real browser with isolated disposable profile (headless smoke)
+      - name: Verify live Brave DevTools startup and normal shutdown (CI disposable profile)
         if: steps.existing.outputs.skip != 'true'
         timeout-minutes: 5
         run: ./scripts/smoke.ps1
@@ -112,7 +112,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r6)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r7)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -123,7 +123,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r6)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r7)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
