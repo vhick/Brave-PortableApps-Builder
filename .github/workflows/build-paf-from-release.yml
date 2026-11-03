@@ -1,0 +1,43 @@
+# Brave r7 -> Universal Portable Package Builder v1.0.0
+# This workflow reuses the already published Brave Portable ZIP.
+# It does not rebuild Brave or alter the existing r7 workflow.
+name: Build Brave PAF using Universal Packager
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Tag of the verified Brave portable ZIP release
+        required: true
+        default: portable-v1.98.63-brave-r7
+        type: string
+      source_asset:
+        description: Exact name of the released ZIP file
+        required: true
+        default: BravePortable_1.98.63_brave-r7_Win64.zip
+        type: string
+      output_tag:
+        description: New release tag for the generated custom NSIS installer
+        required: true
+        default: portable-v1.98.63-brave-universal-nsis-r1
+        type: string
+      publish:
+        description: Publish finished installer if all checks pass
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  paf:
+    uses: vhick/Portable-Package-Builder/.github/workflows/portable-paf-from-release.yml@v1.0.0
+    with:
+      source-tag: ${{ inputs.source_tag }}
+      source-asset: ${{ inputs.source_asset }}
+      output-tag: ${{ inputs.output_tag }}
+      engine: custom-nsis
+      running-exe: 'App\Brave\brave.exe'
+      package-revision: r1
+      publish: ${{ inputs.publish }}
