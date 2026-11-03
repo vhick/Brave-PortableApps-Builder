@@ -37,7 +37,7 @@ try {
  }finally{$p.Dispose()}
  $pafs=@(Get-ChildItem work,dist -Recurse -File -Filter '*.paf.exe' |Where-Object {$_.FullName -ne $toolArchive -and $_.LastWriteTime -ge $start.AddSeconds(-5) -and $_.Name -match '(?i)^BravePortable.*\.paf\.exe$'})
  Require ($pafs.Count -eq 1) "Official compiler did not generate exactly one matching BravePortable .paf.exe ($($pafs.Count) found); inspect work/paf-compiler.log"
- $dest=Join-Path (Resolve-Path dist) "BravePortable_$($up.Version)_brave-r3_Win64.paf.exe"
+ $dest=Join-Path (Resolve-Path dist) "BravePortable_$($up.Version)_brave-r4_Win64.paf.exe"
  Move-Item -LiteralPath $pafs[0].FullName -Destination $dest -Force
  Assert-PE $dest
  Invoke-ArchiveTest $dest

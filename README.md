@@ -1,15 +1,15 @@
-# Brave PortableApps Builder r3
+# Brave PortableApps Builder r4
 
 Independent, on-demand GitHub Actions builder for **official stable Brave Windows x64** binaries. Creates a ready-to-extract `BravePortable` ZIP and tries to build an authentic PortableApps.com Installer `.paf.exe`, using verified official tooling. Compiles a real `BravePortable.exe` GUI launcher with Brave's official icon, an isolated `Data\profile`, and conservative TraceGuard data recovery.
 
-> **Status:** Builder source and portable recovery unit tests have been checked locally, and the launcher cross-compiles to a real Windows PE. **No live Windows Actions/PAF/Brave launch or release-publisher run has been completed at delivery.** This is an unverified r3 candidate, not an already confirmed working release. Expect possible upstream installer layout or CI adjustments; inspect logs before using it for valuable accounts.
+> **Status:** Builder source and portable recovery unit tests have been checked locally, and the launcher cross-compiles to a real Windows PE. **Earlier r3 GitHub Actions runs confirmed Go tests, PowerShell resolver tests, and live release discovery, but the r4 check, Brave launch, PAF generation, and release publishing have not yet run.** This is an unverified r4 candidate, not an already confirmed working release. Expect possible upstream installer layout or CI adjustments; inspect logs before using it for valuable accounts.
 
 ## What it generates
 
 | Requested output | Workflow behavior |
 |---|---|
-| `BravePortable_VERSION_brave-r3_Win64.zip` | Default. Contains `BravePortable/BravePortable.exe` + original Brave binaries + required PortableApps menu files. |
-| `BravePortable_VERSION_brave-r3_Win64.paf.exe` | Attempted by default using SHA-verified **unmodified official PortableApps.com Installer 3.9.22**. Only published if PE/archive/payload validation passes. |
+| `BravePortable_VERSION_brave-r4_Win64.zip` | Default. Contains `BravePortable/BravePortable.exe` + original Brave binaries + required PortableApps menu files. |
+| `BravePortable_VERSION_brave-r4_Win64.paf.exe` | Attempted by default using SHA-verified **unmodified official PortableApps.com Installer 3.9.22**. Only published if PE/archive/payload validation passes. |
 | SHA-256 hashes | Calculated during building. The existing release publisher also performs its own checksumming. |
 | Browser source compilation | **No.** Brave/Chromium source build exceeds the intended GitHub Free workflow budget; the source-tagged original vendor binaries are SHA-256 verified and extracted. Only the portable launcher is compiled. |
 
@@ -24,14 +24,14 @@ The manual GitHub Actions workflow accepts:
 - **require_paf:** `false` default. When `true`, a failed official-tool installer causes the workflow to fail. When `false`, it keeps the valid ZIP.
 - **publish:** `true` default. Runs `vhick/portable-release-publisher@v1.1.1` in preview/dry-run and then publishing mode.
 
-Publisher controls: uses `files`, `tag`, `release-title`, `tag-prefix`, `keep-releases`, `prune` and `dry-run` as declared by verified `action.yml`. Tags are `portable-vX.Y.Z-brave-r3`. If the tag already has a release, the workflow skips expensive steps rather than overwriting assets. It retains the release publisher's default of three recent releases **only if pruning is enabled**, but this builder sets `prune: false`, so NO automatic deletion occurs. Manual releases remain unaffected. Public repositories publish public releases and private repositories publish private releases; visibility is never modified.
+Publisher controls: uses `files`, `tag`, `release-title`, `tag-prefix`, `keep-releases`, `prune` and `dry-run` as declared by verified `action.yml`. Tags are `portable-vX.Y.Z-brave-r4`. If the tag already has a release, the workflow skips expensive steps rather than overwriting assets. It retains the release publisher's default of three recent releases **only if pruning is enabled**, but this builder sets `prune: false`, so NO automatic deletion occurs. Manual releases remain unaffected. Public repositories publish public releases and private repositories publish private releases; visibility is never modified.
 
 ## GitHub Desktop: beginner setup
 
 1. Download the **builder ZIP** attached to the chat response. Extract it somewhere convenient on your Windows PC.
 2. Start **GitHub Desktop**, choose **File → New repository**. For example, enter `Brave-PortableApps-Builder`. Choose your normal GitHub repositories folder. Create the repository. Do not fork the Brave browser repository.
 3. Open the new repository location using **Repository → Show in Explorer**. Copy **the contents inside the builder ZIP** into this folder. At the top level you should see `README.md`, `go.mod`, `cmd`, `internal`, `scripts`, `docs`, `.github`, `.gitignore`. Enable *Show hidden items* in Windows Explorer if `.github` and `.gitignore` are hidden. Keep `.github/workflows/build.yml` inside `.github`.
-4. Return to GitHub Desktop. It should show new/changed source files. Enter summary `Add Brave PortableApps Builder r3`, then click **Commit to main**.
+4. Return to GitHub Desktop. It should show new/changed source files. Enter summary `Fix Brave release existence check - r4`, then click **Commit to main**.
 5. Click **Publish repository**. Pick **Private** by default while verifying the build and evaluating Brave branding/redistribution permissions. Uncheck **Keep this code private** only if you have decided public distribution is appropriate. This setting affects release visibility too.
 6. Open the repository on GitHub in a browser. Navigate to **Settings → Actions → General → Workflow permissions**. Make sure the workflow can obtain **Read and write permissions** when publishing releases. In an organization, organization policy may override this setting.
 7. Select **Actions** and enable workflows if GitHub prompts you. Click **Brave PortableApps (official Brave stable + native EXE launcher)** → **Run workflow**. Leave version blank for the current official latest stable. Keep `attempt_paf=true`, `require_paf=false`. Keep `publish=true` after deciding your repository's visibility is acceptable. Click **Run workflow**.
@@ -108,7 +108,7 @@ docs/NOTICE.txt              provenance/trademark/license notices
 
 ### Maintainer notes
 
-- Revisions must increment the `r3` package/tag revision in all relevant files before rebuilding the same upstream version; existing releases intentionally block destructive overwrites.
+- Revisions must increment the `r4` package/tag revision in all relevant files before rebuilding the same upstream version; existing releases intentionally block destructive overwrites.
 - `actions/checkout@v4`, `actions/setup-go@v5`, `vhick/portable-release-publisher@v1.1.1` are version-tagged dependencies. SHA pinning of upstream actions is recommended once their exact commits have been independently verified.
 - Source digest pinning protects browser assets. SHA256 pinning protects the official PAF tool. The build-time resource generator uses a pinned tagged Go module; its module checksum is verified by Go's module infrastructure.
 - For guaranteed source compilation or absolute unknown-path attribution, a substantially different build environment, Windows instrumentation plan and separate testing project are needed; this release does not make those claims.
@@ -129,3 +129,13 @@ The r2 GitHub Actions run passed Go tests, resolver regression tests and stable 
 r3 assigns the API response separately, expands both direct and nested object-array forms via `Expand-BraveReleaseAssetPage`, validates each asset's expected `id` and `name`, and uses the actual expanded count for pagination. The existing regression test now includes the previously missing nested-object response scenario plus direct, single-item and empty-page cases. The same Brave binary, TraceGuard, official PAF attempt and shared release publisher are retained. New tags/assets use `brave-r3`; no earlier releases are overwritten.
 
 **Verification boundary:** r3 corrects the diagnosed parsing problem in source, but actual PowerShell execution, subsequent Brave extraction, launcher smoke, PAF compilation and release publication must still be exercised by GitHub Actions. If they fail, examine the specific later failure instead of reusing earlier assumptions.
+
+## r4 correction — 2026-11-03 (third uploaded Actions log)
+
+The third r3 run passed both test steps and successfully discovered the latest official stable Brave `v1.98.63`, upstream commit and **213 release assets**. It then failed in `Avoid rebuilding already-published versions`, before downloading Brave, while running `gh release view ... *> $null`. The CLI output was suppressed, so the log does not establish whether the release was missing or another CLI error occurred. A missing release normally returns a native exit code of 1, which the GitHub Actions PowerShell wrapper can propagate even when the workflow appears to handle it.
+
+r4 replaces that CLI command with GitHub's authenticated **Get a release by tag name** REST API. It uses PowerShell 7 `Invoke-RestMethod -SkipHttpErrorCheck -StatusCodeVariable` to distinguish **200 (already published; skip)** from **404 (missing; continue build)**. Authentication errors (401/403), rate limiting (429), server failures (5xx), bad responses, and other errors fail explicitly instead of being mistaken for missing releases. The new `scripts/test-release-check.ps1` runs offline before the network check and tests 200, 404, several error codes, and invalid release identities.
+
+The revised artifact/tag identifier is `brave-r4`, protecting earlier releases. Brave binaries, launcher, TraceGuard, official PAF attempt and shared release publisher remain unchanged.
+
+**Verification boundary:** the uploaded Actions log proves r3 reached the release-existence check. r4 source, Go tests, launcher cross-compilation, workflow parsing and ZIP structure were checked locally. Full PowerShell execution and later Brave/PAF/publishing steps still require a live Windows Actions run.

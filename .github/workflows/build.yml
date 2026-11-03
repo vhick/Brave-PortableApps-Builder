@@ -54,19 +54,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           REQUESTED_VERSION: ${{ inputs.version }}
         run: ./scripts/resolve.ps1 -Version $env:REQUESTED_VERSION
+      - name: Regression-test HTTP release existence handling
+        run: ./scripts/test-release-check.ps1
       - name: Avoid rebuilding already-published versions
         id: existing
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag='${{ steps.upstream.outputs.tag }}'
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if($LASTEXITCODE -eq 0){
-            Write-Host "Release $tag already exists. No rebuild or overwrite."
-            'skip=true' | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-          } else {
-            'skip=false' | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-          }
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.upstream.outputs.tag }}
+        run: ./scripts/check-release.ps1 -Tag $env:RELEASE_TAG
       - name: Extract the SHA256-verified Brave stable release (no installation)
         if: steps.existing.outputs.skip != 'true'
         timeout-minutes: 20
@@ -113,7 +108,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r3)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r4)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -124,7 +119,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r3)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r4)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
