@@ -20,8 +20,22 @@ $assets.Add([pscustomobject]@{ name='BraveBrowserSetup.exe'; size=1220000; diges
 $assets.Add([pscustomobject]@{ name='BraveBrowserStandaloneSetup32.exe'; size=149000000; digest=('sha256:' + ('a' * 64)) })
 $assets.Add([pscustomobject]@{ name='BraveBrowserStandaloneSetupArm64.exe'; size=164000000; digest=('sha256:' + ('a' * 64)) })
 $assets.Add([pscustomobject]@{ name='BraveBrowserStandaloneSetup.exe'; size=160000000; digest=('sha256:' + ('c' * 64)) })
-$found=Select-BraveWindowsX64Asset -Assets $assets.ToArray()
+# Regression for the REAL r2 failure: IRM wrote a 100-item JSON array as
+# ONE pipeline object, and @(Invoke-RestMethod ...) miscounted it as 1.
+$fullPage=@($assets.ToArray())
+$nestedPage=,$fullPage
+$expanded=@(Expand-BraveReleaseAssetPage -Page $nestedPage)
+Check ($expanded.Count -eq $fullPage.Count) "nested Invoke-RestMethod asset page was not expanded"
+Check ($expanded.Count -gt 100) "large page was counted as a single object"
+Check ($expanded[-1].name -eq 'BraveBrowserStandaloneSetup.exe') 'asset ordering changed during normalization'
+$direct=@(Expand-BraveReleaseAssetPage -Page $fullPage)
+Check ($direct.Count -eq $fullPage.Count) 'direct JSON asset array was not enumerated'
+$single=@(Expand-BraveReleaseAssetPage -Page $fullPage[-1])
+Check ($single.Count -eq 1) 'a single JSON asset object was lost'
+$empty=@(Expand-BraveReleaseAssetPage -Page @())
+Check ($empty.Count -eq 0) 'empty GitHub asset page should remain empty'
+$found=Select-BraveWindowsX64Asset -Assets $expanded
 Check ($null -ne $found) 'x64 standalone asset not selected'
 Check ($found.name -eq 'BraveBrowserStandaloneSetup.exe') 'selected wrong architecture or installer'
 Check ($null -eq (Select-BraveWindowsX64Asset -Assets @($assets[0],$assets[1]))) 'unknown asset selected'
-Write-Host 'PASS: stable, prerelease, beta/nightly, explicit Windows x64 asset, 160+ asset scenarios'
+Write-Host 'PASS: stable, prerelease, beta/nightly, x64 installer, nested/direct/empty pages, 160+ assets'

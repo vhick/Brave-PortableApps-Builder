@@ -29,3 +29,21 @@ function Select-BraveWindowsX64Asset {
     }
     return $null
 }
+
+
+# Invoke-RestMethod can write a JSON array as ONE object into the PowerShell
+# pipeline. In that case @(Invoke-RestMethod ...) holds a nested Object[] and
+# Count is 1, even when GitHub returned 100 release assets. Normalize both
+# the direct and nested forms. This function emits one ASSET per pipeline item.
+function Expand-BraveReleaseAssetPage {
+    param([AllowNull()][object]$Page)
+    if ($null -eq $Page) { return }
+    foreach ($entry in @($Page)) {
+        if ($null -eq $entry) { continue }
+        if ($entry -is [System.Array]) {
+            foreach ($asset in $entry) { $asset }
+        } else {
+            $entry
+        }
+    }
+}

@@ -113,7 +113,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r2)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r3)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -124,7 +124,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r2)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r3)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'

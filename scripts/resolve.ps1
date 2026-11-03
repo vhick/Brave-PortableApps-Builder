@@ -29,14 +29,26 @@ Write-Host "Validated official stable channel: $($release.name) ($($release.tag_
 # The release-detail response is NOT assumed to contain a complete assets list.
 $assets=@()
 $maxPages=8
+$finished=$false
 for($page=1;$page -le $maxPages;$page++) {
     $url="$api/releases/$($release.id)/assets?per_page=100&page=$page"
-    $batch=@(Invoke-RestMethod -Headers $headers -Uri $url -TimeoutSec 45)
+    # Do not wrap the cmdlet invocation directly in @(...). GitHub returns a
+    # JSON array which Invoke-RestMethod can emit as a SINGLE nested Object[].
+    # The dedicated expansion helper handles both shapes safely.
+    $rawPage=Invoke-RestMethod -Headers $headers -Uri $url -TimeoutSec 45
+    $batch=@(Expand-BraveReleaseAssetPage -Page $rawPage)
     if ($batch.Count -eq 0) { break }
+    foreach ($entry in $batch) {
+        if ($null -eq $entry -or $null -eq $entry.PSObject.Properties['name'] -or
+            $null -eq $entry.PSObject.Properties['id']) {
+            throw "Invalid GitHub release asset metadata on page $page; refusing to treat a nested JSON array as one asset"
+        }
+    }
     $assets += $batch
     Write-Host "Read asset page ${page}: $($batch.Count) entries (total $($assets.Count))"
-    if ($batch.Count -lt 100) { break }
+    if ($batch.Count -lt 100) { $finished=$true; break }
 }
+Require ($finished) "Release asset listing exceeded $maxPages pages; refusing an incomplete search"
 Require ($assets.Count -gt 0) "No release assets returned for $($release.tag_name)"
 # The requested Windows binary can be at page two or later. Do not choose
 # another architecture or download a web installer as a fallback.
@@ -61,12 +73,12 @@ $out=[ordered]@{
     AssetDigest=$asset.digest.Substring(7).ToLowerInvariant()
     AssetSize=$asset.size
     AssetCount=$assets.Count
-    BuilderRevision='r2'
+    BuilderRevision='r3'
     ResolvedAt=(Get-Date).ToUniversalTime().ToString('o')
 }
 $out | ConvertTo-Json | Set-Content -Encoding utf8 work/upstream.json
 Write-Host "Resolved stable $($release.tag_name), commit $commit; verified asset metadata: $($asset.name) ($($asset.size) bytes)"
 if ($env:GITHUB_OUTPUT) {
     "version=$($out.Version)" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-    "tag=portable-v$($out.Version)-brave-r2" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+    "tag=portable-v$($out.Version)-brave-r3" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
 }
