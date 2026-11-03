@@ -42,9 +42,38 @@ func getMutex(key string) (func(), error) {
 	}
 	return func() { kernel.NewProc("CloseHandle").Call(h) }, nil
 }
+// A GUI error dialog has no place in unattended GitHub Actions. The normal
+// desktop launcher still shows an actionable dialog; smoke mode logs instead.
+func smokeRequested() bool {
+	for _, a := range os.Args[1:] {
+		if a == "--portable-smoke-test" {
+			return true
+		}
+	}
+	return false
+}
+func reportSmokeError(err error) {
+	exe, pathErr := os.Executable()
+	if pathErr != nil {
+		fmt.Fprintln(os.Stderr, "portable smoke failed:", err)
+		return
+	}
+	dir := filepath.Join(filepath.Dir(exe), "Data", "TraceGuard")
+	if mkErr := os.MkdirAll(dir, 0700); mkErr == nil {
+		if f, openErr := os.OpenFile(filepath.Join(dir, "launcher.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); openErr == nil {
+			fmt.Fprintln(f, time.Now().Format(time.RFC3339), "SMOKE FAILED:", err)
+			_ = f.Close()
+		}
+	}
+	fmt.Fprintln(os.Stderr, "portable smoke failed:", err)
+}
 func main() {
 	if err := run(); err != nil {
-		alert(err.Error())
+		if smokeRequested() {
+			reportSmokeError(err)
+		} else {
+			alert(err.Error())
+		}
 		os.Exit(1)
 	}
 }

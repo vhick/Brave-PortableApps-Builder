@@ -73,12 +73,12 @@ $out=[ordered]@{
     AssetDigest=$asset.digest.Substring(7).ToLowerInvariant()
     AssetSize=$asset.size
     AssetCount=$assets.Count
-    BuilderRevision='r5'
+    BuilderRevision='r6'
     ResolvedAt=(Get-Date).ToUniversalTime().ToString('o')
 }
 $out | ConvertTo-Json | Set-Content -Encoding utf8 work/upstream.json
 Write-Host "Resolved stable $($release.tag_name), commit $commit; verified ZIP asset metadata: $($asset.name) ($($asset.size) bytes)"
 if ($env:GITHUB_OUTPUT) {
     "version=$($out.Version)" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-    "tag=portable-v$($out.Version)-brave-r5" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+    "tag=portable-v$($out.Version)-brave-r6" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
 }

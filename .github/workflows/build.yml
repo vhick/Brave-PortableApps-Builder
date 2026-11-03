@@ -45,11 +45,13 @@ jobs:
           go-version: '1.24'
           cache: false
       - name: Unit tests (including files, nested and empty directory protection)
-        run: go test -count=1 ./internal/traceguard
+        run: go test -count=1 ./...
       - name: Regression-test Brave stable release and exact Windows x64 ZIP selection
         run: ./scripts/test-resolver.ps1
       - name: Regression-test Brave ZIP layout and resource directory preservation
         run: ./scripts/test-extraction.ps1
+      - name: Regression-test bounded noninteractive browser smoke polling
+        run: ./scripts/test-smoke.ps1
       - name: Resolve official stable release and its commit (no compilation yet)
         id: upstream
         env:
@@ -74,7 +76,7 @@ jobs:
         run: ./scripts/stage.ps1
       - name: Launch the real browser with isolated disposable profile (headless smoke)
         if: steps.existing.outputs.skip != 'true'
-        timeout-minutes: 4
+        timeout-minutes: 5
         run: ./scripts/smoke.ps1
       - name: Build and integrity-test ready-to-extract ZIP
         if: steps.existing.outputs.skip != 'true'
@@ -110,7 +112,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r5)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r6)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -121,7 +123,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r5)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r6)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'

@@ -1,4 +1,4 @@
-# Brave Windows portable audit — independent builder r5 (2026-11-03)
+# Brave Windows portable audit — independent builder r6 (2026-11-03)
 
 ## Evidence, application and build approach
 
@@ -87,3 +87,7 @@ These match the Portapps Brave reference arguments, plus first-run suppression.
 
 ## r5 direct ZIP correction (2026-11-03)
 The uploaded r4 log establishes that the EXE was downloaded, but the updater installer did not contain `chrome.7z` as the builder required. The direct x64 ZIP removes that incorrect installer assumption. Exact-release filename matching rejects 32-bit, ARM, symbols and Brave Origin archives; GitHub-published SHA-256 and 7z archive testing are mandatory. The binary `brave.exe` must be unique and PE-valid. The full sibling resource tree and empty directories are copied intact to `App\Brave`. The browser ZIP still contains official Brave binaries, NOT a compile-from-source output.
+
+## r6 bounded unattended smoke correction — 2026-11-03
+
+The r5 GitHub Actions runner successfully downloaded and extracted the exact official Brave ZIP, and compiled the native launcher. Its `Start-Process -Wait` smoke step timed out after four minutes. PowerShell documents that `-Wait` waits for a process *tree*, not only the launched PID. Also, the launcher displayed an interactive MessageBoxW on error. The log contains no browser output, so one cannot isolate which condition caused the hang. r6 uses a bounded wait on only the directly launched process; smoke-mode errors go to an on-disk log without dialogs; output and failure details are displayed in Actions; and the CI test only terminates its own known launcher PID on timeout.
