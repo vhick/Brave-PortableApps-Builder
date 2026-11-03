@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Stable Brave version, blank = highest stable release'
+        description: 'Stable Brave version, blank = official latest stable release'
         required: false
         default: ''
         type: string
@@ -46,6 +46,8 @@ jobs:
           cache: false
       - name: Unit tests (including files, nested and empty directory protection)
         run: go test -count=1 ./internal/traceguard
+      - name: Regression-test Brave stable release and x64 asset selection
+        run: ./scripts/test-resolver.ps1
       - name: Resolve official stable release and its commit (no compilation yet)
         id: upstream
         env:
@@ -111,7 +113,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r1)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r2)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'
@@ -122,7 +124,7 @@ jobs:
         with:
           files: ${{ steps.verify.outputs.files }}
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r1)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r2)
           tag-prefix: portable-
           keep-releases: '3'
           prune: 'false'

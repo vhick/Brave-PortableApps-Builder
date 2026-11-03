@@ -1,4 +1,4 @@
-# Brave Windows portable audit — independent builder r1 (2026-11-03)
+# Brave Windows portable audit — independent builder r2 (2026-11-03)
 
 ## Evidence, application and build approach
 
