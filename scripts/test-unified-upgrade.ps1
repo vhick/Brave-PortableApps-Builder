@@ -6,7 +6,7 @@ $stage=Join-Path $root 'work/BravePortable'
 $paf= @(Get-ChildItem -LiteralPath (Join-Path $root 'dist') -File -Filter '*.paf.exe')
 Require ($paf.Count -eq 1) 'Expected exactly one NSIS executable to test'
 Require ($env:INSTALLER_FILE -and ([IO.Path]::GetFullPath($env:INSTALLER_FILE) -ieq $paf[0].FullName)) 'Wrong installer selected for upgrade test'
-Require ($env:RUNNER_TEMP) 'Disposable RUNNER_TEMP required'
+Require (Test-NonBlank -value $env:RUNNER_TEMP) 'Disposable RUNNER_TEMP required'
 $testRoot=Join-Path $env:RUNNER_TEMP 'BraveUnifiedInstallerTest'
 $dest=Join-Path $testRoot 'BravePortable'
 $outside=Join-Path $testRoot 'Unrelated'

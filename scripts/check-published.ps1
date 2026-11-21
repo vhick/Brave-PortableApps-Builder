@@ -1,7 +1,7 @@
 # Publisher v1.1.1 must publish ZIP and independent NSIS PAF, not just one.
 . "$PSScriptRoot/common.ps1"
-Require ($env:GH_TOKEN) 'Missing token for published release verification'
-Require ($env:RELEASE_TAG -match '^portable-v\d+\.\d+\.\d+-brave-r8$') 'Unexpected release tag'
+Require (Test-NonBlank -value $env:GH_TOKEN) 'Missing token for published release verification'
+Require ($env:RELEASE_TAG -match '^portable-v\d+\.\d+\.\d+-brave-r9$') 'Unexpected release tag'
 $raw = & gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name' 2>&1
 if ($LASTEXITCODE -ne 0) { throw "Could not inspect published release: $($raw -join ' ')" }
 $names=@($raw | ForEach-Object { "$_".Trim() } | Where-Object { $_ })

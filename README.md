@@ -1,4 +1,4 @@
-# Brave PortableApps — Unified Builder r8 (ZIP + independent NSIS PAF)
+# Brave PortableApps — Unified Builder r9 (ZIP + independent NSIS PAF)
 
 This independent builder produces **both** ready-to-extract `BravePortable_...zip` and a **custom NSIS-built** `.paf.exe` installer **in ONE Windows GitHub Actions workflow**, from ONE validated staging folder, without downloading Brave twice or recompiling the launcher twice.
 
@@ -15,7 +15,7 @@ File: `.github/workflows/build.yml` — GitHub Actions **Brave PortableApps - Un
 
 1. Run local unit/static tests and stable-release resolver regression tests.
 2. Resolve current stable Brave release and SHA-256-protected uninstalled x64 browser ZIP (or specify stable version).
-3. Check for the existing `portable-v<VERSION>-brave-r8` release. If found, **skip safely** without rewriting it.
+3. Check for the existing `portable-v<VERSION>-brave-r9` release. If found, **skip safely** without rewriting it.
 4. Download, checksum-verify and unpack official Brave ZIP.
 5. Stage `work/BravePortable` and compile a real `BravePortable.exe` using Go with Brave's official icon.
 6. Launch actual Brave in a disposable CI profile; verify DevTools readiness, shutdown and TraceGuard cleanup. Remove all CI-created test data from staging.
@@ -30,7 +30,7 @@ The default workflow run is **manual only**; it does not incur scheduled builds.
 ## GitHub Desktop: replace your existing repo without breaking history
 
 1. **Back up or commit any local changes** in your current `vhick/Brave-PortableApps-Builder` GitHub Desktop repository before making changes.
-2. Download and unzip the complete r8 kit.
+2. Download and unzip the complete r9 kit.
 3. Open GitHub Desktop -> select `Brave-PortableApps-Builder` -> Repository -> Show in Explorer.
 4. Inside your repository delete these **three OLD workflow files** if they exist (do **not** delete `.github` itself):
    - `.github/workflows/build.yml` (will be replaced by the new single file)
@@ -40,13 +40,13 @@ The default workflow run is **manual only**; it does not incur scheduled builds.
    - `scripts/paf.ps1`
    - `scripts/nsis-paf` (entire legacy subfolder)
    - Old add-on-only docs `ADDON-INSTRUCTIONS.md`, `NSIS-R2-CHANGELOG.md` and `docs/INDEPENDENT-NSIS-PAF-GUIDE.md`.
-6. Copy **all** extracted r8 kit files into the existing repository (including the hidden `.github` folder), replacing matching files. Do not replace the `.git` folder, and do not delete unrelated custom files without review.
-7. In GitHub Desktop confirm there is **only one file in `.github/workflows`: `build.yml`**. Review changes. Commit summary: `Unify Brave ZIP and NSIS PAF builds using shared packager - r8`. Click Commit to main, then Push origin.
+6. Copy **all** extracted r9 kit files into the existing repository (including the hidden `.github` folder), replacing matching files. Do not replace the `.git` folder, and do not delete unrelated custom files without review.
+7. In GitHub Desktop confirm there is **only one file in `.github/workflows`: `build.yml`**. Review changes. Commit summary: `Fix r8 Boolean validation and release publishing checks - r9`. Click Commit to main, then Push origin.
 8. Open https://github.com/vhick/Brave-PortableApps-Builder/actions -> `Brave PortableApps - Unified ZIP and NSIS PAF` -> `Run workflow`.
 9. Leave `version` blank for latest stable, set `publish=true`, click Run workflow.
 10. When green, open **Releases** of the Brave builder and confirm two assets: one `.zip`, one `.paf.exe`, plus publisher-generated checksums.
 
-**You do not need to create a GitHub release tag manually.** The shared publisher publishes the unique new r8 tag. Old r7 releases remain untouched.
+**You do not need to create a GitHub release tag manually.** The shared publisher publishes the unique new r9 tag. Old r7 releases remain untouched.
 
 ## Runtime portability
 
@@ -58,11 +58,11 @@ The shared NSIS installer replaces managed `App`, `Other`, and launcher binaries
 
 ## Existing releases and update frequency
 
-Each upstream version and builder revision gets a tag `portable-v<VERSION>-brave-r8`. If that tag already exists, the workflow skips building rather than overwriting. To rebuild the *same* Brave version after a code fix, create a new builder revision and release tag; do **not** rewrite immutable r8 tags. Version selection checks Brave's stable channel; nightly/beta assets and wrong architecture are refused.
+Each upstream version and builder revision gets a tag `portable-v<VERSION>-brave-r9`. If that tag already exists, the workflow skips building rather than overwriting. To rebuild the *same* Brave version after a code fix, create a new builder revision and release tag; do **not** rewrite immutable r9 tags. Version selection checks Brave's stable channel; nightly/beta assets and wrong architecture are refused.
 
 ## Limitations
 
-- Initial r8 workflow **has not** been executed in GitHub Actions; local validations are not a substitute for Windows installer testing.
+- r8's actual Windows run confirmed successful Brave download, ZIP integrity, live startup, and custom NSIS compilation. It failed at `scripts/validate-unified.ps1` when a SHA-256 text string was passed to a Boolean parameter. The r9 correction and later upgrade/publisher checks still require a live Windows Actions run.
 - Custom NSIS is *not* the official PortableApps.com Installer. Its `.paf.exe` extension is not evidence of official provenance.
 - NSIS false-positive detections are possible. Do not disable antivirus protection; use vendor review and release hashes.
 - Brave Windows encryption may bind secrets to the local Windows account despite an otherwise portable profile.
@@ -70,4 +70,8 @@ Each upstream version and builder revision gets a tag `portable-v<VERSION>-brave
 - Package Builder v1.0.0 and Release Publisher v1.1.1 are pinned to their published tags; update intentionally after testing.
 - Failure during Windows setup may preserve a `.__UPB_Backup` directory for recovery. Never remove it without inspecting its contents.
 
-See `docs/PORTABILITY-AUDIT.md` for application-specific trace limitations. New r8 notes: `docs/UNIFIED-REBUILD.md`.
+See `docs/PORTABILITY-AUDIT.md` for application-specific trace limitations. New r9 notes: `docs/R9-LOG-ANALYSIS.md`.
+
+## r9 corrective release
+
+The r8 log `logs_121449787794.zip` confirms both formats were built, but final validation rejected a raw SHA-256 string as an argument to `[bool] Require`. r9 enforces a 64-character hexadecimal SHA-256 check and also corrects the same latent Boolean conversion issue in the upgrade smoke test (`RUNNER_TEMP`) and published-release check (`GH_TOKEN`). A new PowerShell guard regression test runs before the browser download. All release tags and package names use `brave-r9`, preserving immutable earlier releases. Existing Brave launcher and TraceGuard code remain unchanged.

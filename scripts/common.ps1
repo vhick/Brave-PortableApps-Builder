@@ -1,6 +1,14 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 function Require([bool]$condition,[string]$message){if(-not $condition){throw $message}}
+# Return Boolean values to Require; never pass a raw SHA-256 string or
+# an environment variable directly to a [bool] function parameter.
+function Test-NonBlank([AllowNull()][string]$value) {
+ return -not [string]::IsNullOrWhiteSpace($value)
+}
+function Test-Sha256Hex([AllowNull()][string]$value) {
+ return ($null -ne $value -and $value -match '^[a-fA-F0-9]{64}$')
+}
 function SevenZip {
  $paths=@('C:\Program Files\7-Zip\7z.exe','C:\Program Files (x86)\7-Zip\7z.exe')
  foreach($p in $paths){if(Test-Path -LiteralPath $p){return $p}}

@@ -1,4 +1,4 @@
-# r8 unified rebuild audit and acceptance evidence
+# r9 unified rebuild audit and acceptance evidence
 
 - Previous Brave r7 release resolver, official ZIP extraction, Go launcher, TraceGuard, and DevTools browser smoke code are retained from the previously tested r7 baseline.
 - Removed three-workflow split; this repository delivers exactly one `.github/workflows/build.yml`.
@@ -12,4 +12,4 @@
 
 ## Local verification versus live Windows verification
 
-The delivered ZIP was validated locally, and Go tests / cross-compile and static contract checks are recorded in the response. Real packaging, Windows browser launch, PAF installation/upgrade, and publishing require a new GitHub Actions run; until then r8 is a test candidate, not a proven production release.
+The user's actual r8 GitHub Actions run validated Brave browser retrieval, native launcher compilation, live browser startup, ZIP creation, and custom NSIS compilation, but stopped at a Boolean type error in `validate-unified.ps1`. The delivered r9 ZIP passed local Go tests, launcher cross-compilation, and static/YAML checks. The r9 PowerShell guard regression, full installer upgrade behavior, and publishing have NOT yet run in GitHub Actions. Thus r9 is a test candidate, not a verified published build. See `docs/R9-LOG-ANALYSIS.md`.

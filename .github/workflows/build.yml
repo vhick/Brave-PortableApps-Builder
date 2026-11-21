@@ -42,6 +42,9 @@ jobs:
       - name: One-workflow integration contract check
         run: python tests/test-unified-static.py
 
+      - name: PowerShell Boolean guard regressions (before downloads)
+        run: ./scripts/test-unified-guards.ps1
+
       - name: Go TraceGuard and launcher tests
         run: go test -count=1 ./...
 
@@ -108,7 +111,7 @@ jobs:
           output-dir: dist
           engine: custom-nsis
           running-exe: 'App\Brave\brave.exe'
-          package-revision: brave-r8
+          package-revision: brave-r9
           timeout-seconds: '1800'
 
       - name: Validate BOTH files and their checksums
@@ -135,7 +138,7 @@ jobs:
         with:
           files: 'dist/*.zip;dist/*.paf.exe'
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r8)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r9)
           tag-prefix: 'portable-'
           keep-releases: '3'
           prune: 'false'
@@ -147,7 +150,7 @@ jobs:
         with:
           files: 'dist/*.zip;dist/*.paf.exe'
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r8)
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r9)
           tag-prefix: 'portable-'
           keep-releases: '3'
           prune: 'false'
