@@ -7,13 +7,13 @@ $paf= @(Get-ChildItem -LiteralPath (Join-Path $root 'dist') -File -Filter '*.paf
 Require ($paf.Count -eq 1) 'Expected exactly one NSIS executable to test'
 Require ($env:INSTALLER_FILE -and ([IO.Path]::GetFullPath($env:INSTALLER_FILE) -ieq $paf[0].FullName)) 'Wrong installer selected for upgrade test'
 Require (Test-NonBlank -value $env:RUNNER_TEMP) 'Disposable RUNNER_TEMP required'
-$testRoot=Join-Path $env:RUNNER_TEMP 'BraveUnifiedInstallerTest'
-$dest=Join-Path $testRoot 'BravePortable'
-$outside=Join-Path $testRoot 'Unrelated'
-if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Force -Recurse }
-New-Item -ItemType Directory -Force $dest,$outside | Out-Null
-$marker=Join-Path $outside 'KEEP_THIS_HOST_FILE.txt'
-[IO.File]::WriteAllText($marker,'unrelated-host-content')
+. "$PSScriptRoot/installer-fixture.ps1"
+$fixture=Initialize-UpgradeInstallTest -RunnerTemp $env:RUNNER_TEMP
+$testRoot=$fixture.TestRoot
+$dest=$fixture.Destination
+$outside=$fixture.Outside
+$marker=$fixture.Marker
+Write-Host "Fresh installation target is absent (installer must create it): $dest"
 function Invoke-Installer([string]$Destination,[bool]$ExpectSuccess) {
   $psi=[Diagnostics.ProcessStartInfo]::new()
   $psi.FileName=$paf[0].FullName
@@ -29,7 +29,14 @@ function Invoke-Installer([string]$Destination,[bool]$ExpectSuccess) {
       try { $process.Kill($true); $process.WaitForExit(5000) | Out-Null } catch {}
       throw 'NSIS install test exceeded 600 seconds'
     }
-    if($ExpectSuccess){Require ($process.ExitCode -eq 0) "NSIS installation failed with exit code $($process.ExitCode)"}
+    if($ExpectSuccess -and $process.ExitCode -ne 0) {
+      Write-Warning "NSIS installation returned exit code $($process.ExitCode) for $Destination"
+      if(Test-Path -LiteralPath $Destination) {
+        Get-ChildItem -LiteralPath $Destination -Force -ErrorAction Continue |
+          Select-Object Name,Mode | Format-Table -AutoSize | Out-Host
+      }
+      throw "NSIS installation failed with exit code $($process.ExitCode). Code 2 means the installer script aborted. Destination: $Destination"
+    }
     else{Require ($process.ExitCode -ne 0) 'NSIS incorrectly allowed installation into an unrelated folder'}
     Write-Host "NSIS exit code $($process.ExitCode) for disposable destination $Destination"
   } finally { $process.Dispose() }

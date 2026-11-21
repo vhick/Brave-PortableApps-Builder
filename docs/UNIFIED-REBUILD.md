@@ -1,4 +1,4 @@
-# r9 unified rebuild audit and acceptance evidence
+# r10 unified rebuild audit and acceptance evidence
 
 - Previous Brave r7 release resolver, official ZIP extraction, Go launcher, TraceGuard, and DevTools browser smoke code are retained from the previously tested r7 baseline.
 - Removed three-workflow split; this repository delivers exactly one `.github/workflows/build.yml`.
@@ -12,4 +12,8 @@
 
 ## Local verification versus live Windows verification
 
-The user's actual r8 GitHub Actions run validated Brave browser retrieval, native launcher compilation, live browser startup, ZIP creation, and custom NSIS compilation, but stopped at a Boolean type error in `validate-unified.ps1`. The delivered r9 ZIP passed local Go tests, launcher cross-compilation, and static/YAML checks. The r9 PowerShell guard regression, full installer upgrade behavior, and publishing have NOT yet run in GitHub Actions. Thus r9 is a test candidate, not a verified published build. See `docs/R9-LOG-ANALYSIS.md`.
+The actual r8 GitHub Actions run validated Brave retrieval, launcher, startup, ZIP and NSIS compilation but stopped at a Boolean validation error. The next r9 run passed the Boolean guards and successfully built and validated both ZIP and PAF, then failed on first NSIS installation with exit code 2. r10 addresses premature creation of the empty installation directory. See `docs/R10-LOG-ANALYSIS.md`.
+
+## r10 actual log-based delta
+
+r9 built and validated both outputs, but installation test failed with NSIS exit 2. The script pre-created the supposedly fresh application destination, which can be mistaken for an occupied folder by shared NSIS v1.0.0. r10 creates the test parent and unrelated marker only, leaves the application destination absent, adds a cheap fixture regression test, and retains unchanged runtime launcher/TraceGuard. Complete Windows installation and publish remain unverified pending Actions. See docs/R10-LOG-ANALYSIS.md.
