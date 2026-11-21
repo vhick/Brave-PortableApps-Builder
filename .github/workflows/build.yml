@@ -1,25 +1,15 @@
-name: Brave PortableApps (official Brave stable + native EXE launcher)
+name: Brave PortableApps - Unified ZIP and NSIS PAF
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Stable Brave version, blank = official latest stable release'
+        description: 'Official stable Brave version (blank = latest stable)'
         required: false
-        default: ''
         type: string
-      attempt_paf:
-        description: 'Attempt official PortableApps.com Installer PAF (verified tool)'
-        required: true
-        type: boolean
-        default: true
-      require_paf:
-        description: 'Fail build if official-tool PAF cannot be verified'
-        required: true
-        type: boolean
-        default: false
+        default: ''
       publish:
-        description: 'Publish finished ZIP and (if successful) PAF in this repository'
+        description: 'Publish BOTH verified packages to this builder repository Releases'
         required: true
         type: boolean
         default: true
@@ -28,114 +18,145 @@ permissions:
   contents: write
 
 concurrency:
-  group: brave-portable-builder
+  group: brave-unified-release
   cancel-in-progress: false
 
 jobs:
   build:
+    name: Build + test Brave ZIP and independent NSIS PAF
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 85
     defaults:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Checkout independent Brave builder
+        uses: actions/checkout@v4
+
+      - name: Set up Go for tested native launcher
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24'
           cache: false
-      - name: Unit tests (including files, nested and empty directory protection)
+
+      - name: One-workflow integration contract check
+        run: python tests/test-unified-static.py
+
+      - name: Go TraceGuard and launcher tests
         run: go test -count=1 ./...
-      - name: Regression-test Brave stable release and exact Windows x64 ZIP selection
+
+      - name: Stable-release resolver regressions
         run: ./scripts/test-resolver.ps1
-      - name: Regression-test Brave ZIP layout and resource directory preservation
+
+      - name: Official ZIP layout regressions
         run: ./scripts/test-extraction.ps1
-      - name: Regression-test local DevTools browser-smoke protocol and bounded polling
+
+      - name: Real-browser smoke test regressions
         run: ./scripts/test-smoke.ps1
-      - name: Resolve official stable release and its commit (no compilation yet)
+
+      - name: GitHub release-check regressions
+        run: ./scripts/test-release-check.ps1
+
+      - name: Resolve latest official STABLE Brave Windows x64 ZIP
         id: upstream
+        timeout-minutes: 4
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REQUESTED_VERSION: ${{ inputs.version }}
         run: ./scripts/resolve.ps1 -Version $env:REQUESTED_VERSION
-      - name: Regression-test HTTP release existence handling
-        run: ./scripts/test-release-check.ps1
-      - name: Avoid rebuilding already-published versions
+
+      - name: Skip a release that already exists (no destructive overwrite)
         id: existing
+        timeout-minutes: 2
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.upstream.outputs.tag }}
         run: ./scripts/check-release.ps1 -Tag $env:RELEASE_TAG
-      - name: Download and validate official uninstalled Brave x64 ZIP (no installer)
+
+      - name: Download, SHA-256-verify and extract original Brave browser ZIP
         if: steps.existing.outputs.skip != 'true'
-        timeout-minutes: 20
+        timeout-minutes: 22
         run: ./scripts/download-extract.ps1
-      - name: Create PortableApps directory and compile real Windows EXE
+
+      - name: Build ONE genuine BravePortable.exe and stage ONE PortableApps folder
         if: steps.existing.outputs.skip != 'true'
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: ./scripts/stage.ps1
-      - name: Verify live Brave DevTools startup and normal shutdown (CI disposable profile)
+
+      - name: Test actual Brave startup, shutdown and TraceGuard on disposable Data
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 6
+        run: ./scripts/smoke.ps1
+
+      - name: Create ZIP from the validated staged application
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 14
+        run: ./scripts/package.ps1
+
+      - name: Validate staged application and ZIP before installer compilation
         if: steps.existing.outputs.skip != 'true'
         timeout-minutes: 5
-        run: ./scripts/smoke.ps1
-      - name: Build and integrity-test ready-to-extract ZIP
+        run: ./scripts/validate.ps1
+
+      - name: Build independent headless NSIS PAF using shared universal builder
         if: steps.existing.outputs.skip != 'true'
-        timeout-minutes: 12
-        run: ./scripts/package.ps1
-      - name: Generate authentic PortableApps.com Installer PAF (optional)
-        if: steps.existing.outputs.skip != 'true' && inputs.attempt_paf
-        timeout-minutes: 10
-        run: |
-          if ('${{ inputs.require_paf }}' -eq 'true') {
-            ./scripts/paf.ps1 -Required
-          } else {
-            ./scripts/paf.ps1
-          }
-      - name: Validate packages and choose exact publication globs
+        id: installer
+        timeout-minutes: 35
+        uses: vhick/Portable-Package-Builder@v1.0.0
+        with:
+          source-dir: work/BravePortable
+          output-dir: dist
+          engine: custom-nsis
+          running-exe: 'App\Brave\brave.exe'
+          package-revision: brave-r8
+          timeout-seconds: '1800'
+
+      - name: Validate BOTH files and their checksums
         if: steps.existing.outputs.skip != 'true'
-        id: verify
-        run: |
-          $pafs=@(Get-ChildItem dist -File -Filter '*.paf.exe')
-          if($pafs.Count -gt 0){
-            ./scripts/validate.ps1 -CheckPAF
-            'files=dist/*.zip;dist/*.paf.exe'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-            'has_paf=true'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-          }else{
-            if ('${{ inputs.require_paf }}' -eq 'true') {throw 'Official-tool PAF required but not generated'}
-            ./scripts/validate.ps1
-            'files=dist/*.zip'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-            'has_paf=false'|Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-          }
-      - name: Preview official publisher release (no writes)
+        id: packages
+        timeout-minutes: 5
+        env:
+          INSTALLER_FILE: ${{ steps.installer.outputs.installer-file }}
+          INSTALLER_SHA256: ${{ steps.installer.outputs.installer-sha256 }}
+          APP_ID: ${{ steps.installer.outputs.app-id }}
+          APP_VERSION: ${{ steps.installer.outputs.app-version }}
+        run: ./scripts/validate-unified.ps1
+
+      - name: Real Windows NSIS first-install and upgrade safety test
+        if: steps.existing.outputs.skip != 'true'
+        timeout-minutes: 16
+        env:
+          INSTALLER_FILE: ${{ steps.installer.outputs.installer-file }}
+        run: ./scripts/test-unified-upgrade.ps1
+
+      - name: Publisher DRY RUN - inspect exactly two validated packages
         if: steps.existing.outputs.skip != 'true' && inputs.publish
         uses: vhick/portable-release-publisher@v1.1.1
         with:
-          files: ${{ steps.verify.outputs.files }}
+          files: 'dist/*.zip;dist/*.paf.exe'
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r7)
-          tag-prefix: portable-
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r8)
+          tag-prefix: 'portable-'
           keep-releases: '3'
           prune: 'false'
           dry-run: 'true'
-      - name: Publish validated ZIP and optional official PAF directly to Releases
+
+      - name: Publish BOTH validated files in ONE GitHub Release
         if: steps.existing.outputs.skip != 'true' && inputs.publish
         uses: vhick/portable-release-publisher@v1.1.1
         with:
-          files: ${{ steps.verify.outputs.files }}
+          files: 'dist/*.zip;dist/*.paf.exe'
           tag: ${{ steps.upstream.outputs.tag }}
-          release-title: Brave Portable ${{ steps.upstream.outputs.version }} (independent r7)
-          tag-prefix: portable-
+          release-title: Brave Portable ${{ steps.upstream.outputs.version }} - Unified ZIP + independent NSIS PAF (r8)
+          tag-prefix: 'portable-'
           keep-releases: '3'
           prune: 'false'
           dry-run: 'false'
-      - name: Check published assets without secondary publishing
+
+      - name: Verify the published release contains BOTH file formats
         if: steps.existing.outputs.skip != 'true' && inputs.publish
+        timeout-minutes: 3
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag='${{ steps.upstream.outputs.tag }}'
-          $assets=@(gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name')
-          if($LASTEXITCODE -ne 0){throw 'Unable to read published release'}
-          if(@($assets|Where-Object {$_ -match '\.zip$'}).Count -ne 1){throw 'Published release missing ZIP'}
-          if('${{ steps.verify.outputs.has_paf }}' -eq 'true' -and @($assets|Where-Object {$_ -match '\.paf\.exe$'}).Count -ne 1){throw 'Published release missing PAF'}
-          Write-Host "Confirmed release assets: $($assets -join ', ')"
+          RELEASE_TAG: ${{ steps.upstream.outputs.tag }}
+        run: ./scripts/check-published.ps1
