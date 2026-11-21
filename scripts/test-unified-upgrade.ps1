@@ -8,6 +8,7 @@ Require ($paf.Count -eq 1) 'Expected exactly one NSIS executable to test'
 Require ($env:INSTALLER_FILE -and ([IO.Path]::GetFullPath($env:INSTALLER_FILE) -ieq $paf[0].FullName)) 'Wrong installer selected for upgrade test'
 Require (Test-NonBlank -value $env:RUNNER_TEMP) 'Disposable RUNNER_TEMP required'
 . "$PSScriptRoot/installer-fixture.ps1"
+. "$PSScriptRoot/installer-result-utils.ps1"
 $fixture=Initialize-UpgradeInstallTest -RunnerTemp $env:RUNNER_TEMP
 $testRoot=$fixture.TestRoot
 $dest=$fixture.Destination
@@ -29,15 +30,21 @@ function Invoke-Installer([string]$Destination,[bool]$ExpectSuccess) {
       try { $process.Kill($true); $process.WaitForExit(5000) | Out-Null } catch {}
       throw 'NSIS install test exceeded 600 seconds'
     }
-    if($ExpectSuccess -and $process.ExitCode -ne 0) {
-      Write-Warning "NSIS installation returned exit code $($process.ExitCode) for $Destination"
-      if(Test-Path -LiteralPath $Destination) {
-        Get-ChildItem -LiteralPath $Destination -Force -ErrorAction Continue |
-          Select-Object Name,Mode | Format-Table -AutoSize | Out-Host
-      }
-      throw "NSIS installation failed with exit code $($process.ExitCode). Code 2 means the installer script aborted. Destination: $Destination"
+    # A successful normal install MUST return 0. An intentionally refused
+    # unrelated destination MUST return nonzero. These are distinct cases.
+    $exitCode = $process.ExitCode
+    Write-Host "NSIS installer result: expectSuccess=$ExpectSuccess; exitCode=$exitCode; destination=$Destination"
+    if ($ExpectSuccess -and $exitCode -ne 0 -and (Test-Path -LiteralPath $Destination)) {
+      Write-Warning "NSIS did not finish an expected installation; installed directory listing follows:"
+      Get-ChildItem -LiteralPath $Destination -Force -ErrorAction Continue |
+        Select-Object Name,Mode | Format-Table -AutoSize | Out-Host
     }
-    else{Require ($process.ExitCode -ne 0) 'NSIS incorrectly allowed installation into an unrelated folder'}
+    if (-not $ExpectSuccess -and $exitCode -eq 0 -and (Test-Path -LiteralPath $Destination)) {
+      Write-Warning 'NSIS accepted an unrelated destination; inspect files in the disposable test folder:'
+      Get-ChildItem -LiteralPath $Destination -Force -ErrorAction Continue |
+        Select-Object Name,Mode | Format-Table -AutoSize | Out-Host
+    }
+    Assert-InstallerOutcome -ExitCode $exitCode -ExpectSuccess $ExpectSuccess -Destination $Destination
     Write-Host "NSIS exit code $($process.ExitCode) for disposable destination $Destination"
   } finally { $process.Dispose() }
 }

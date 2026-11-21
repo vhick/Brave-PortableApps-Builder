@@ -1,4 +1,4 @@
-# r10 unified rebuild audit and acceptance evidence
+# r11 unified rebuild audit and acceptance evidence
 
 - Previous Brave r7 release resolver, official ZIP extraction, Go launcher, TraceGuard, and DevTools browser smoke code are retained from the previously tested r7 baseline.
 - Removed three-workflow split; this repository delivers exactly one `.github/workflows/build.yml`.
@@ -12,8 +12,12 @@
 
 ## Local verification versus live Windows verification
 
-The actual r8 GitHub Actions run validated Brave retrieval, launcher, startup, ZIP and NSIS compilation but stopped at a Boolean validation error. The next r9 run passed the Boolean guards and successfully built and validated both ZIP and PAF, then failed on first NSIS installation with exit code 2. r10 addresses premature creation of the empty installation directory. See `docs/R10-LOG-ANALYSIS.md`.
+The actual r8 run validated Brave retrieval, launcher, startup, ZIP and NSIS compilation but stopped at a Boolean validation error. r9 passed that validation but its installer test encountered exit code 2 because it had pre-created the installation destination. r10 corrected that fixture and both packages again passed integrity verification; its **test logic** then incorrectly rejected successful NSIS exit code 0 as though it were a write into an unrelated folder.
 
-## r10 actual log-based delta
+## r11 actual log-based delta
 
-r9 built and validated both outputs, but installation test failed with NSIS exit 2. The script pre-created the supposedly fresh application destination, which can be mistaken for an occupied folder by shared NSIS v1.0.0. r10 creates the test parent and unrelated marker only, leaves the application destination absent, adds a cheap fixture regression test, and retains unchanged runtime launcher/TraceGuard. Complete Windows installation and publish remain unverified pending Actions. See docs/R10-LOG-ANALYSIS.md.
+r11 keeps the r10 first-install fixture unchanged and separates two result checks: an expected first install/upgrade must return 0, while an intentional install into an unrelated destination must return nonzero. A dedicated pre-download PowerShell regression tests both outcomes, plus unexpected failures. The actual Windows installer test still checks installed browser/launcher hashes, removes old versioned binaries, preserves `Data` and empty directory trees, and refuses unrelated host folders.
+
+The release-publishing tag verifier now accepts `brave-r11`, avoiding an unrelated final-step failure after successful installation tests. Native launcher/TraceGuard, shared Universal Package Builder v1.0.0 and Universal Release Publisher v1.1.1 remain unchanged. See `docs/R11-LOG-ANALYSIS.md`.
+
+Local Go tests, Windows cross-compilation, YAML and static regression checks do not establish a successful Windows PAF install or publication. Run the Windows workflow to verify both.

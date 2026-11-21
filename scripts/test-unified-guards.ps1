@@ -11,7 +11,7 @@ Require (-not (Test-Sha256Hex -value 'bad')) 'SHA-256 hex guard accepted malform
 Require (-not (Test-Sha256Hex -value $null)) 'SHA-256 hex guard accepted null'
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('brave-guard-' + [guid]::NewGuid().ToString('N') + '.txt')
 try {
-  [IO.File]::WriteAllText($temp, 'Brave r10 guard test fixture')
+  [IO.File]::WriteAllText($temp, 'Brave r11 guard test fixture')
   $real=(Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash
   Require (Test-Sha256Hex -value $real) 'Real Get-FileHash result was not accepted'
   Write-Host 'PASS: correct Boolean argument types for SHA-256 and environment guards'

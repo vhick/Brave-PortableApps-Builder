@@ -43,7 +43,7 @@ CommercialUse=false
 
 [Version]
 PackageVersion=$version
-DisplayVersion=$($up.Version) Portable r10
+DisplayVersion=$($up.Version) Portable r11
 
 [Control]
 Icons=1

@@ -1,7 +1,7 @@
 # Both outputs are mandatory: this step must fail before the publisher if one is missing.
 . "$PSScriptRoot/common.ps1"
 $up = Get-Content -LiteralPath work/upstream.json -Raw | ConvertFrom-Json
-Require ($up.BuilderRevision -ceq 'r10') 'Incorrect builder revision'
+Require ($up.BuilderRevision -ceq 'r11') 'Incorrect builder revision'
 $root = (Resolve-Path .).Path
 $stage = Join-Path $root 'work/BravePortable'
 $dist = Join-Path $root 'dist'
@@ -9,8 +9,8 @@ $zip = @(Get-ChildItem -LiteralPath $dist -File -Filter '*.zip')
 $pafs = @(Get-ChildItem -LiteralPath $dist -File -Filter '*.paf.exe')
 Require ($zip.Count -eq 1) "Expected exactly ONE PortableApps ZIP; got $($zip.Count)"
 Require ($pafs.Count -eq 1) "Expected exactly ONE independent NSIS .paf.exe; got $($pafs.Count)"
-Require ($zip[0].Name -ceq "BravePortable_$($up.Version)_brave-r10_Win64.zip") 'Unexpected ZIP name/version'
-Require ($pafs[0].Name -ceq "BravePortable_$($up.Version).0_custom-nsis-brave-r10.paf.exe") 'Unexpected installer name/version/engine'
+Require ($zip[0].Name -ceq "BravePortable_$($up.Version)_brave-r11_Win64.zip") 'Unexpected ZIP name/version'
+Require ($pafs[0].Name -ceq "BravePortable_$($up.Version).0_custom-nsis-brave-r11.paf.exe") 'Unexpected installer name/version/engine'
 Require ($env:APP_ID -ceq 'BravePortableIndependent') 'Unexpected AppID from shared packager'
 Require ($env:APP_VERSION -ceq "$($up.Version).0") 'Unexpected app version from shared packager'
 Require ([IO.Path]::GetFullPath($env:INSTALLER_FILE) -ieq $pafs[0].FullName) 'Publisher candidate differs from universal packager output'

@@ -1,7 +1,7 @@
 . "$PSScriptRoot/common.ps1"
 $up=Get-Content work/upstream.json -Raw|ConvertFrom-Json
 Require ($up.AssetName -ceq "brave-v$($up.Version)-win32-x64.zip") 'Staged browser does not originate from the exact official stable Windows x64 ZIP asset'
-Require ($up.BuilderRevision -ceq 'r10') 'Unexpected builder revision in upstream metadata'
+Require ($up.BuilderRevision -ceq 'r11') 'Unexpected builder revision in upstream metadata'
 
 $stage=Join-Path (Resolve-Path .) 'work/BravePortable'
 $info=Join-Path $stage 'App/AppInfo/appinfo.ini'
